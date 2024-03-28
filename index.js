@@ -31,6 +31,7 @@ async function run() {
 
         const menu = client.db("BistroDB").collection("Menu");
         const reviews = client.db("BistroDB").collection("Reviews");
+        const carts = client.db("BistroDB").collection("Cart");
 
         //menu
 
@@ -43,6 +44,12 @@ async function run() {
 
         app.get('/reviews', async (req, res) => {
             const result = await reviews.find().toArray()
+            res.send(result)
+        })
+
+        app.post('/corts', async (req, res) => {
+            const cart = req.body
+            const result = await carts.insertOne(cart)
             res.send(result)
         })
 
