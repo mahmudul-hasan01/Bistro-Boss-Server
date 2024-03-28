@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const app = express()
 const cors = require('cors')
@@ -29,9 +29,24 @@ async function run() {
     try {
         // await client.connect(); 
 
+        const users = client.db("BistroDB").collection("Users");
         const menu = client.db("BistroDB").collection("Menu");
         const reviews = client.db("BistroDB").collection("Reviews");
         const carts = client.db("BistroDB").collection("Cart");
+
+
+        // user
+
+        app.post('/users', async (req, res) => {
+            const user = req.body
+            const query = { email: user.email }
+            const existingUser = await users.findOne(query)
+            if (existingUser) {
+              return res.send({ message: 'user already exists', insertedId: null })
+            }
+            const result = await users.insertOne(user)
+            res.send(result)
+          })
 
         //menu
 
@@ -62,10 +77,10 @@ async function run() {
             res.send(result)
         })
         
-        app.delete('/carts/:id', async (req, res) => {
+        app.delete('/cart/:id', async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
-            const result = await cart.deleteOne(query)
+            const result = await carts.deleteOne(query)
             res.send(result)
           })
 
