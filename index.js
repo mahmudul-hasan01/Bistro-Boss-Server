@@ -35,6 +35,7 @@ async function run() {
     const menu = client.db("BistroDB").collection("Menu");
     const reviews = client.db("BistroDB").collection("Reviews");
     const carts = client.db("BistroDB").collection("Cart");
+    const payments = client.db("BistroDB").collection("payments");
 
     // jwt token
 
@@ -183,6 +184,28 @@ async function run() {
     })
 
     // Payment
+
+    app.get('/payment/:email',verifyToken, async (req, res) => {
+      // const payment = req.body
+      const query = {email: req?.params?.email}
+      if(req.params.email !== req.decoded.email){
+        return res.status(403).send({ massege: 'forbidden access' })
+      }
+      const result = await payments.find(query).toArray()
+      res.send(result)
+    })
+
+    app.post('/payment', async (req, res) => {
+      const payment = req.body
+      const paymentResult = await payments.insertOne(payment)
+      const query = {
+        _id: {
+          $in: payment.cartIds.map(id => new ObjectId(id))
+        }
+      }
+      const deleteResult = await carts.deleteMany(query)
+      res.send({paymentResult,deleteResult})
+    })
 
     app.post('/payment-intent', async (req, res) => {
       const { price } = req.body
