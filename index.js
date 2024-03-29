@@ -4,6 +4,7 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
+const stripe = require('stripe')(process.env.Stripe_Secret_key)
 const port = process.env.PORT || 5000
 
 app.use(cors({
@@ -118,16 +119,9 @@ async function run() {
 
     app.get('/menuItem/:id', async (req, res) => {
       const id = req.params.id
-      const result = await menu.findOne({ _id: new ObjectId(id) })
+      const result = await menu.findOne({ _id: id })
       res.send(result)
     })
-
-    // app.get('/menuItem/:id', async (req, res) => {
-    //   const id = req.params.id
-    //   const query = { _id: new ObjectId(id) }
-    //   const result = await menu.findOne(query)
-    //   console.log(result);
-    // })
 
     app.post('/menu',verifyToken, verifyAdmin, async (req, res) => {
       const manuItem = req.body
@@ -186,6 +180,21 @@ async function run() {
       const query = { _id: new ObjectId(id) }
       const result = await carts.deleteOne(query)
       res.send(result)
+    })
+
+    // Payment
+
+    app.post('/payment-intent', async (req, res) => {
+      const { price } = req.body
+      const amount = parseInt(price * 100)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ['card']
+      })
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     })
 
     await client.db("admin").command({ ping: 1 });
