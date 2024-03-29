@@ -115,9 +115,47 @@ async function run() {
       res.send(result)
     })
 
+
+    app.get('/menuItem/:id', async (req, res) => {
+      const id = req.params.id
+      const result = await menu.findOne({ _id: new ObjectId(id) })
+      res.send(result)
+    })
+
+    // app.get('/menuItem/:id', async (req, res) => {
+    //   const id = req.params.id
+    //   const query = { _id: new ObjectId(id) }
+    //   const result = await menu.findOne(query)
+    //   console.log(result);
+    // })
+
     app.post('/menu',verifyToken, verifyAdmin, async (req, res) => {
-      const manu = req.body
-      const result = await menu.insertOne(manu)
+      const manuItem = req.body
+      const result = await menu.insertOne(manuItem)
+      res.send(result)
+    })
+
+    app.delete('/menu/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await menu.deleteOne(query)
+      res.send(result)
+    })
+
+    app.patch('/menu/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const item = req.body
+      const updatedDoc = {
+        $set: {
+          name: item.name,
+          category: item.category,
+          price: item.price,
+          recipe: item.recipe,
+          image: item.image
+        }
+      }
+      const result = await menu.updateOne(query, updatedDoc)
       res.send(result)
     })
 
