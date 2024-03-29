@@ -9,7 +9,9 @@ const port = process.env.PORT || 5000
 
 app.use(cors({
   origin: [
-    'http://localhost:5173'
+    // https://bistro-boss-server-psi-ecru.vercel.app
+    // 'http://localhost:5173',
+    'https://bistro-boss-24-622ca.firebaseapp.com'
   ],
   credentials: true,
 }))
@@ -73,13 +75,24 @@ async function run() {
 
     // user
 
-    app.get('/users',verifyToken,verifyAdmin, async (req, res) => {
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
       const result = await users.find().toArray()
       res.send(result)
     })
 
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email
+      // if (email !== req.decoded.email) {
+      //   return res.status(403).send({ massege: 'forbidden access' })
+      // }
+      const query = { email: email }
+      const user = await users.findOne(query)
+      const admin = user?.role === 'admin'
+      res.send({ admin })
+    })
 
-    app.post('/users',verifyToken, verifyAdmin, async (req, res) => {
+
+    app.post('/users', async (req, res) => {
       const user = req.body
       const query = { email: user.email }
       const existingUser = await users.findOne(query)
@@ -90,14 +103,14 @@ async function run() {
       res.send(result)
     })
 
-    app.delete('/users/:id',verifyToken,verifyAdmin, async (req, res) => {
+    app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await users.deleteOne(query)
       res.send(result)
     })
 
-    app.patch('/users/admin/:id',verifyToken,verifyAdmin, async (req, res) => {
+    app.patch('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -123,7 +136,7 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/menu',verifyToken, verifyAdmin, async (req, res) => {
+    app.post('/menu', verifyToken, verifyAdmin, async (req, res) => {
       const manuItem = req.body
       const result = await menu.insertOne(manuItem)
       res.send(result)
@@ -184,10 +197,10 @@ async function run() {
 
     // Payment
 
-    app.get('/payment/:email',verifyToken, async (req, res) => {
+    app.get('/payment/:email', verifyToken, async (req, res) => {
       // const payment = req.body
-      const query = {email: req?.params?.email}
-      if(req.params.email !== req.decoded.email){
+      const query = { email: req?.params?.email }
+      if (req.params.email !== req.decoded.email) {
         return res.status(403).send({ massege: 'forbidden access' })
       }
       const result = await payments.find(query).toArray()
@@ -203,7 +216,7 @@ async function run() {
         }
       }
       const deleteResult = await carts.deleteMany(query)
-      res.send({paymentResult,deleteResult})
+      res.send({ paymentResult, deleteResult })
     })
 
     app.post('/payment-intent', async (req, res) => {
@@ -219,9 +232,9 @@ async function run() {
       });
     })
 
-     // stats
+    // stats
 
-     app.get('/admin-stats',verifyToken,verifyAdmin,async(req, res) => {
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
       const user = await users.estimatedDocumentCount()
       const menuItems = await menu.estimatedDocumentCount()
       const order = await payments.estimatedDocumentCount()
@@ -230,7 +243,7 @@ async function run() {
       // const revenue = payment.reduce((total, item) => total + item.price , 0)
       const result = await payments.aggregate([
         {
-          $group:{
+          $group: {
             _id: null,
             totalRevenue: {
               $sum: '$price'
@@ -248,7 +261,7 @@ async function run() {
       })
     })
 
-    app.get('/order-stats',verifyToken,verifyAdmin, async (req, res) => {
+    app.get('/order-stats', verifyToken, verifyAdmin, async (req, res) => {
       const result = await payments.aggregate([
         {
           $unwind: '$menuItemIds'
@@ -285,7 +298,7 @@ async function run() {
 
     })
 
-    // await client.db("admin").command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally { }
 }
