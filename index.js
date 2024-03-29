@@ -58,16 +58,27 @@ async function run() {
       })
     }
 
+    // verify admin 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email
+      const query = { email: email }
+      const user = await users.findOne(query)
+      const isAdmin = user?.role === 'admin'
+      if (!isAdmin) {
+        return res.status(403).send({ massege: 'forbidden access' })
+      }
+      next()
+    }
 
     // user
 
-    app.get('/users',verifyToken, async (req, res) => {
+    app.get('/users',verifyToken,verifyAdmin, async (req, res) => {
       const result = await users.find().toArray()
       res.send(result)
     })
 
 
-    app.post('/users', async (req, res) => {
+    app.post('/users',verifyToken, verifyAdmin, async (req, res) => {
       const user = req.body
       const query = { email: user.email }
       const existingUser = await users.findOne(query)
@@ -78,14 +89,14 @@ async function run() {
       res.send(result)
     })
 
-    app.delete('/users/:id', async (req, res) => {
+    app.delete('/users/:id',verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await users.deleteOne(query)
       res.send(result)
     })
 
-    app.patch('/users/admin/:id', async (req, res) => {
+    app.patch('/users/admin/:id',verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -101,6 +112,12 @@ async function run() {
 
     app.get('/menu', async (req, res) => {
       const result = await menu.find().toArray()
+      res.send(result)
+    })
+
+    app.post('/menu',verifyToken, verifyAdmin, async (req, res) => {
+      const manu = req.body
+      const result = await menu.insertOne(manu)
       res.send(result)
     })
 
