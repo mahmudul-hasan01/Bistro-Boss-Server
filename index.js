@@ -29,7 +29,6 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // await client.connect(); 
 
     const users = client.db("BistroDB").collection("Users");
     const menu = client.db("BistroDB").collection("Menu");
@@ -220,12 +219,75 @@ async function run() {
       });
     })
 
-    await client.db("admin").command({ ping: 1 });
+     // stats
+
+     app.get('/admin-stats',verifyToken,verifyAdmin,async(req, res) => {
+      const user = await users.estimatedDocumentCount()
+      const menuItems = await menu.estimatedDocumentCount()
+      const order = await payments.estimatedDocumentCount()
+      // this is not the best way
+      // const payment = await payments.find().toArray()
+      // const revenue = payment.reduce((total, item) => total + item.price , 0)
+      const result = await payments.aggregate([
+        {
+          $group:{
+            _id: null,
+            totalRevenue: {
+              $sum: '$price'
+            }
+          }
+        }
+      ]).toArray()
+      const revenue = result.length > 0 ? result[0].totalRevenue : 0
+
+      res.send({
+        user,
+        menuItems,
+        order,
+        revenue
+      })
+    })
+
+    app.get('/order-stats',verifyToken,verifyAdmin, async (req, res) => {
+      const result = await payments.aggregate([
+        {
+          $unwind: '$menuItemIds'
+        },
+        {
+          $lookup: {
+            from: 'Menu',
+            localField: 'menuItemIds',
+            foreignField: '_id',
+            as: 'menuItems'
+          }
+        },
+        {
+          $unwind: '$menuItems'
+        },
+        {
+          $group: {
+            _id: '$menuItems.category',
+            quantity: { $sum: 1 },
+            revenue: { $sum: '$menuItems.price' }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            category: '$_id',
+            quantity: '$quantity',
+            revenue: '$revenue'
+          }
+        }
+      ]).toArray();
+
+      res.send(result);
+
+    })
+
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+  } finally { }
 }
 run().catch(console.dir);
 
